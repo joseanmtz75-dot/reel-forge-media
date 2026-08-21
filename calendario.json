@@ -1,3 +1,45 @@
 {
-  "piezas": []
+  "piezas": [
+    {
+      "id": "reel-42",
+      "fecha": "2026-08-21",
+      "hora_local": "12:15",
+      "formato": "publicacion",
+      "mood": "romantico",
+      "texto": "Contigo aprendí que no todo lo bueno tiene que doler primero",
+      "caption": "Contigo aprendí que no todo lo bueno tiene que doler primero\n\nGuárdalo para cuando lo necesites.\n\n#paratii #frases #parati #frasesdeamor #reels #amor #sentimientos #dedicar #viral",
+      "archivos": [
+        "2026-08-21_post_romantico.png"
+      ]
+    },
+    {
+      "id": "reel-43",
+      "fecha": "2026-08-22",
+      "hora_local": "10:30",
+      "formato": "publicacion",
+      "mood": "albur",
+      "texto": "Nunca he sido de irme por las ramas, a mí me gusta ir directo al tronco",
+      "caption": "Nunca he sido de irme por las ramas, a mí me gusta ir directo al tronco\n\n¿Lo captaste o te lo explico?\n\n#picante #humornegro #humormexicano #risas #viral #parati #chistoso #alburear #reels #doblesentido",
+      "archivos": [
+        "2026-08-22_post_albur.png"
+      ]
+    },
+    {
+      "id": "reel-44",
+      "fecha": "2026-08-23",
+      "hora_local": "19:15",
+      "formato": "carrusel",
+      "mood": "coqueto",
+      "texto": "Vas a hacer que me arrepienta de portarme bien",
+      "caption": "Vas a hacer que me arrepienta de portarme bien\n\nEtiqueta a tu crush, al fin qué.\n\n#ligar #parati #coqueteo #frasesbonitas #reels #frases #tqm #viral #relaciones #paratii #mensajes #indirectas",
+      "archivos": [
+        "2026-08-23_carrusel_coqueto_1.png",
+        "2026-08-23_carrusel_coqueto_2.png",
+        "2026-08-23_carrusel_coqueto_3.png",
+        "2026-08-23_carrusel_coqueto_4.png",
+        "2026-08-23_carrusel_coqueto_5.png",
+        "2026-08-23_carrusel_coqueto_6.png"
+      ]
+    }
+  ]
 }
