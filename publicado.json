@@ -1,1 +1,13 @@
-{"publicadas": []}
+{
+  "publicadas": [
+    {
+      "id": "reel-42",
+      "media_id": "18062963009775127",
+      "fecha_programada": "2026-08-21",
+      "publicado_en": "2026-08-21T12:58:32-06:00",
+      "formato": "publicacion",
+      "mood": "romantico",
+      "texto": "Contigo aprendí que no todo lo bueno tiene que doler primero"
+    }
+  ]
+}
