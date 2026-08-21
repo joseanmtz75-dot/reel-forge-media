@@ -1,0 +1,78 @@
+name: Publicar en Instagram
+
+# Los horarios van en UTC, que es lo unico que entiende GitHub.
+# Mexico es UTC-6 fijo (sin horario de verano desde 2022), asi que:
+#     hora local + 6 = hora UTC
+#
+# OJO con jueves y domingo: al sumarles 6 horas cruzan la medianoche y caen
+# en el DIA SIGUIENTE en UTC. Por eso el dia de la semana del cron no coincide
+# con el dia real de publicacion. Es el error clasico de estas configuraciones.
+#
+#   Dia         Local    UTC      Dia del cron
+#   Lunes       12:15    18:15    lunes     (1)
+#   Martes      13:30    19:30    martes    (2)
+#   Miercoles   12:30    18:30    miercoles (3)
+#   Jueves      18:15    00:15    VIERNES   (5)  <- cruza medianoche
+#   Viernes     12:15    18:15    viernes   (5)
+#   Sabado      10:30    16:30    sabado    (6)
+#   Domingo     19:15    01:15    LUNES     (1)  <- cruza medianoche
+#
+# El programa no se guia por la hora sino por la FECHA en Mexico, asi que un
+# retraso de GitHub no le hace publicar la pieza equivocada.
+
+on:
+  schedule:
+    - cron: "15 18 * * 1"   # lunes 12:15
+    - cron: "30 19 * * 2"   # martes 13:30
+    - cron: "30 18 * * 3"   # miercoles 12:30
+    - cron: "15 0  * * 5"   # jueves 18:15  (viernes en UTC)
+    - cron: "15 18 * * 5"   # viernes 12:15
+    - cron: "30 16 * * 6"   # sabado 10:30
+    - cron: "15 1  * * 1"   # domingo 19:15 (lunes en UTC)
+  workflow_dispatch:
+    inputs:
+      forzar_pieza:
+        description: "Id de una pieza concreta (dejar vacio para publicar la de hoy)"
+        required: false
+        default: ""
+
+# Hace falta escribir porque despues del envio se anota en publicado.json
+permissions:
+  contents: write
+
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install --quiet requests
+
+      - name: Publicar lo que toca hoy
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          FORZAR_PIEZA: ${{ github.event.inputs.forzar_pieza }}
+        run: python publicar.py
+
+      - name: Anotar lo publicado
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain publicado.json)" ]; then
+            git config user.name  "reel-forge"
+            git config user.email "actions@github.com"
+            git add publicado.json
+            git commit -m "Publicado $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "Sin cambios que anotar."
+          fi
