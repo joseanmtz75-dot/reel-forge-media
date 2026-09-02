@@ -17,6 +17,51 @@
       "formato": "publicacion",
       "mood": "albur",
       "texto": "Nunca he sido de irme por las ramas, a mí me gusta ir directo al tronco"
+    },
+    {
+      "id": "reel-20",
+      "media_id": "18163640395417384",
+      "fecha_programada": "2026-08-24",
+      "publicado_en": "2026-08-24T12:56:44-06:00",
+      "formato": "publicacion",
+      "mood": "coqueto",
+      "texto": "Odio que me gustes tanto y que además lo sepas"
+    },
+    {
+      "id": "reel-21",
+      "media_id": "17949755607255792",
+      "fecha_programada": "2026-08-25",
+      "publicado_en": "2026-08-25T13:53:17-06:00",
+      "formato": "publicacion",
+      "mood": "giro",
+      "texto": "Las mejores cosas de la vida son gratis, pásame tu dirección"
+    },
+    {
+      "id": "reel-22",
+      "media_id": "18126207967823586",
+      "fecha_programada": "2026-08-26",
+      "publicado_en": "2026-08-26T14:40:45-06:00",
+      "formato": "publicacion",
+      "mood": "albur",
+      "texto": "Dicen que más vale maña que fuerza, yo por si las dudas traigo las dos"
+    },
+    {
+      "id": "reel-24",
+      "media_id": "18014859473945786",
+      "fecha_programada": "2026-08-28",
+      "publicado_en": "2026-08-28T05:19:11-06:00",
+      "formato": "publicacion",
+      "mood": "giro",
+      "texto": "El silencio a veces dice más que mil palabras, aunque tú haces bastante más ruido"
+    },
+    {
+      "id": "reel-25",
+      "media_id": "18140960788598175",
+      "fecha_programada": "2026-08-29",
+      "publicado_en": "2026-08-29T13:28:01-06:00",
+      "formato": "publicacion",
+      "mood": "albur",
+      "texto": "Me dicen aguantador, y no precisamente en el gimnasio"
     }
   ]
 }
