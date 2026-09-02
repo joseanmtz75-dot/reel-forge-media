@@ -166,15 +166,43 @@ def main() -> int:
     registro = leer(PUBLICADO, {"publicadas": []})
     ya_salieron = {p["id"] for p in registro["publicadas"]}
 
+    modo = os.environ.get("MODO", "hoy").strip() or "hoy"
+
     if forzar:
         pendientes = [p for p in calendario["piezas"] if p["id"] == forzar]
         print(f"Modo forzado: se busca la pieza '{forzar}'")
+
+    elif modo == "atrasadas":
+        # Rescate: piezas de dias ANTERIORES que nunca salieron.
+        #
+        # Hace falta porque GitHub no siempre ejecuta la tarea: hubo dias en
+        # que sencillamente no corrio, y esas piezas se quedaban muertas en el
+        # calendario para siempre porque solo se miraba la fecha de hoy.
+        #
+        # Se excluye la de HOY a proposito: esa tiene su hora elegida y debe
+        # salir en su ventana, no a cualquier hora que se le ocurra al rescate.
+        atrasadas = sorted(
+            (p for p in calendario["piezas"]
+             if p["fecha"] < hoy and p["id"] not in ya_salieron),
+            key=lambda p: p["fecha"])
+        if not atrasadas:
+            print("No hay nada atrasado. Todo al dia.")
+            return 0
+        # De una en una: soltar cinco de golpe seria peor que el atraso
+        pendientes = atrasadas[:1]
+        print(f"{len(atrasadas)} pieza(s) atrasadas. Se publica la mas vieja "
+              f"({pendientes[0]['fecha']}); el resto en las proximas corridas.")
+
     else:
         pendientes = [p for p in calendario["piezas"]
                       if p["fecha"] == hoy and p["id"] not in ya_salieron]
 
     if not pendientes:
-        print("No hay nada programado para hoy. Todo en orden.")
+        atrasadas = [p for p in calendario["piezas"]
+                     if p["fecha"] < hoy and p["id"] not in ya_salieron]
+        print("No hay nada programado para hoy. Todo en orden."
+              + (f"  (ojo: {len(atrasadas)} atrasada(s) esperando el rescate)"
+                 if atrasadas else ""))
         return 0
 
     fallos = 0
