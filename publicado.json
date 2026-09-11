@@ -134,6 +134,15 @@
       "formato": "publicacion",
       "mood": "romantico",
       "texto": "Lo más raro es que no me esforcé nada y aun así me salió bien"
+    },
+    {
+      "id": "reel-26",
+      "media_id": "17946908496337405",
+      "fecha_programada": "2026-09-10",
+      "publicado_en": "2026-09-10T22:34:54-06:00",
+      "formato": "carrusel",
+      "mood": "romantico",
+      "texto": "Contigo entendí la diferencia entre estar acompañado y estar bien acompañado"
     }
   ]
 }
