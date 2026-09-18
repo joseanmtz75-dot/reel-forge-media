@@ -42,11 +42,24 @@ RAIZ = Path(__file__).resolve().parent
 CALENDARIO = RAIZ / "calendario.json"
 PUBLICADO = RAIZ / "publicado.json"
 
-API = "https://graph.instagram.com/v21.0"
+# OJO: camino de FACEBOOK, no el de Instagram.
+#
+# El de Instagram (graph.instagram.com) publicaba bien las fotos, pero NO tiene
+# la API de audio: 'ig_audio' responde "does not exist". Sin audio en tendencia
+# un reel no reparte, y los reels son lo unico que reparte en esta cuenta:
+# 1052 vistas en 6 reels contra 37 en 17 publicaciones de foto.
+#
+# De propina, el token de PAGINA no caduca. El de Instagram habia que renovarlo
+# cada 60 dias, y eso en una tarea automatica se olvida y falla en silencio.
+API = "https://graph.facebook.com/v25.0"
+
 # Mexico no usa horario de verano desde 2022, asi que el desfase es fijo.
 ZONA_MEXICO = timezone(timedelta(hours=-6))
 
-ESPERA_MAXIMA = 180      # segundos esperando a que Instagram procese la pieza
+# Un video tarda mucho mas en procesarse que una foto, y publicarlo antes de
+# que termine falla.
+ESPERA_MAXIMA = 180
+ESPERA_MAXIMA_VIDEO = 600
 PAUSA_ENTRE_INTENTOS = 6
 
 
@@ -96,12 +109,81 @@ def crear_contenedor(user_id: str, token: str, url_imagen: str,
     return _pedir("POST", f"{user_id}/media", datos)["id"]
 
 
-def esperar_listo(contenedor: str, token: str) -> None:
+# =============================================================================
+# Audio en tendencia
+# =============================================================================
+
+def audio_en_tendencia(user_id: str, token: str, tipo: str = "music") -> list[dict]:
+    """
+    Lo que Instagram considera en tendencia AHORA MISMO.
+
+    Se pide EN EL MOMENTO DE PUBLICAR, no al aprobar. Las tendencias cambian en
+    dias: una cancion elegida el domingo estaria muerta el jueves, y publicar
+    con audio viejo es casi tan malo como publicar sin audio.
+
+    Dos cosas que costaron descubrir y que no conviene "arreglar":
+      - La respuesta viene en la clave 'audio', NO en 'data' como el resto del
+        grafo. Leyendola mal salen cero pistas con el catalogo lleno.
+      - NO se manda 'search_query'. Buscando devuelve relleno de libreria
+        generica; sin pedir nada devuelve las tendencias de verdad, ademas
+        localizadas.
+    """
+    d = _pedir("GET", "ig_audio", {"audio_type": tipo, "user_id": user_id,
+                                   "access_token": token})
+    return d.get("audio", [])
+
+
+def elegir_audio(user_id: str, token: str, usados: list[str]) -> dict | None:
+    """
+    Una pista en tendencia que no se haya usado en las ultimas publicaciones.
+
+    Repetir cancion hace que la cuenta parezca una plantilla, que es justo lo
+    que este contenido no se puede permitir. Si ya se usaron todas, se recicla
+    la primera: mejor repetir que publicar mudo.
+    """
+    try:
+        pistas = audio_en_tendencia(user_id, token)
+    except RuntimeError as e:
+        print(f"    [aviso] no pude consultar el audio: {e}")
+        return None
+    if not pistas:
+        return None
+    recientes = set(usados[-8:])
+    for p in pistas:
+        if p.get("audio_id") not in recientes:
+            return p
+    return pistas[0]
+
+
+def crear_contenedor_reel(user_id: str, token: str, url_video: str,
+                          caption: str, audio: dict | None) -> str:
+    """
+    Un reel, con la cancion en tendencia pegada si la hay.
+
+    video_volume=0 porque nuestros videos llevan una pista MUDA a proposito:
+    la musica de Instagram tiene que sonar sola. La pista muda existe solo
+    porque no esta claro que Instagram acepte un video sin stream de audio.
+    """
+    datos = {"media_type": "REELS", "video_url": url_video,
+             "caption": caption, "access_token": token}
+    if audio and audio.get("audio_id"):
+        datos["audio_configuration"] = json.dumps({
+            "audio_id": audio["audio_id"],
+            "audio_volume": 100,
+            "video_volume": 0,
+        })
+    return _pedir("POST", f"{user_id}/media", datos)["id"]
+
+
+def esperar_listo(contenedor: str, token: str, espera: int = ESPERA_MAXIMA) -> None:
     """
     Instagram procesa en segundo plano. Publicar antes de que termine falla,
     asi que hay que preguntar hasta que diga FINISHED.
+
+    El video necesita mucho mas tiempo que la foto: por eso 'espera' se sube a
+    ESPERA_MAXIMA_VIDEO cuando la pieza es un reel.
     """
-    limite = time.time() + ESPERA_MAXIMA
+    limite = time.time() + espera
     while time.time() < limite:
         estado = _pedir("GET", contenedor,
                         {"fields": "status_code,status", "access_token": token})
@@ -117,6 +199,14 @@ def esperar_listo(contenedor: str, token: str) -> None:
 def publicar_suelta(user_id: str, token: str, url_imagen: str, caption: str) -> str:
     contenedor = crear_contenedor(user_id, token, url_imagen, caption)
     esperar_listo(contenedor, token)
+    return _pedir("POST", f"{user_id}/media_publish",
+                  {"creation_id": contenedor, "access_token": token})["id"]
+
+
+def publicar_reel(user_id: str, token: str, url_video: str, caption: str,
+                  audio: dict | None) -> str:
+    contenedor = crear_contenedor_reel(user_id, token, url_video, caption, audio)
+    esperar_listo(contenedor, token, ESPERA_MAXIMA_VIDEO)
     return _pedir("POST", f"{user_id}/media_publish",
                   {"creation_id": contenedor, "access_token": token})["id"]
 
@@ -148,15 +238,23 @@ def publicar_carrusel(user_id: str, token: str, urls: list[str], caption: str) -
 # =============================================================================
 
 def main() -> int:
-    token = os.environ.get("IG_ACCESS_TOKEN", "").strip()
-    user_id = os.environ.get("IG_USER_ID", "").strip()
+    # Camino de Facebook. Los nombres viejos se aceptan de reserva para que una
+    # corrida no muera si todavia no se han cambiado los secretos, pero SIN los
+    # de Facebook no hay audio en tendencia: el endpoint no existe del otro lado.
+    token = (os.environ.get("FB_PAGE_TOKEN", "").strip()
+             or os.environ.get("IG_ACCESS_TOKEN", "").strip())
+    user_id = (os.environ.get("FB_IG_USER_ID", "").strip()
+               or os.environ.get("IG_USER_ID", "").strip())
     repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
     rama = os.environ.get("GITHUB_REF_NAME", "main").strip()
     forzar = os.environ.get("FORZAR_PIEZA", "").strip()
 
     if not token or not user_id:
-        print("[ERROR] Faltan IG_ACCESS_TOKEN o IG_USER_ID en los secretos.")
+        print("[ERROR] Faltan FB_PAGE_TOKEN o FB_IG_USER_ID en los secretos.")
         return 1
+    if not os.environ.get("FB_PAGE_TOKEN", "").strip():
+        print("[AVISO] Usando el token viejo de Instagram. Los reels saldran "
+              "SIN musica: la API de audio no existe por ese camino.")
 
     base_url = f"https://raw.githubusercontent.com/{repo}/{rama}/imagenes"
     hoy = hoy_en_mexico()
@@ -205,6 +303,9 @@ def main() -> int:
                  if atrasadas else ""))
         return 0
 
+    # Que canciones se usaron ultimamente, para no repetirlas
+    usados = [p.get("audio_id") for p in registro["publicadas"] if p.get("audio_id")]
+
     fallos = 0
     for pieza in pendientes:
         etiqueta = f"{pieza['id']} ({pieza.get('formato','?')}, {pieza.get('mood','?')})"
@@ -214,19 +315,39 @@ def main() -> int:
             for u in urls:
                 print(f"    {u}")
 
-            if pieza.get("formato") == "carrusel" and len(urls) > 1:
+            audio = None
+            formato = pieza.get("formato")
+            es_reel = formato == "reel" or urls[0].lower().endswith(".mp4")
+
+            if es_reel:
+                audio = elegir_audio(user_id, token, usados)
+                if audio:
+                    print(f"    audio: {audio.get('title')} — "
+                          f"{audio.get('display_artist') or audio.get('ig_username')}")
+                else:
+                    print("    audio: NINGUNO (saldra mudo)")
+                media_id = publicar_reel(user_id, token, urls[0],
+                                         pieza.get("caption", ""), audio)
+            elif formato == "carrusel" and len(urls) > 1:
                 media_id = publicar_carrusel(user_id, token, urls, pieza.get("caption", ""))
             else:
                 media_id = publicar_suelta(user_id, token, urls[0], pieza.get("caption", ""))
 
             print(f"    PUBLICADO  media_id={media_id}")
-            registro["publicadas"].append({
+            anotacion = {
                 "id": pieza["id"], "media_id": media_id,
                 "fecha_programada": pieza["fecha"],
                 "publicado_en": datetime.now(ZONA_MEXICO).isoformat(timespec="seconds"),
-                "formato": pieza.get("formato"), "mood": pieza.get("mood"),
+                "formato": formato, "mood": pieza.get("mood"),
                 "texto": pieza.get("texto", ""),
-            })
+            }
+            if audio:
+                # Se anota para no repetir cancion y para poder cruzar despues
+                # que audios rindieron mejor.
+                anotacion["audio_id"] = audio.get("audio_id")
+                anotacion["audio_titulo"] = audio.get("title")
+                usados.append(audio.get("audio_id"))
+            registro["publicadas"].append(anotacion)
             escribir(PUBLICADO, registro)
         except Exception as e:
             fallos += 1
