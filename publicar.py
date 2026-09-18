@@ -133,13 +133,22 @@ def audio_en_tendencia(user_id: str, token: str, tipo: str = "music") -> list[di
     return d.get("audio", [])
 
 
-def elegir_audio(user_id: str, token: str, usados: list[str]) -> dict | None:
-    """
-    Una pista en tendencia que no se haya usado en las ultimas publicaciones.
+LETRAS = {"albur": "a", "giro": "g", "coqueto": "c", "romantico": "r"}
 
-    Repetir cancion hace que la cuenta parezca una plantilla, que es justo lo
-    que este contenido no se puede permitir. Si ya se usaron todas, se recicla
-    la primera: mejor repetir que publicar mudo.
+
+def elegir_audio(user_id: str, token: str, usados: list[str],
+                 mood: str = "") -> dict | None:
+    """
+    La cancion en tendencia que le queda a esta categoria y no se repite.
+
+    El emparejado NO se calcula aqui: viene hecho en musica.json, que se
+    clasifica con IA en la maquina del usuario y viaja con el repositorio. Asi
+    esta tarea no necesita otra llave en los secretos ni gasta un centimo por
+    publicacion — y como el caracter de una cancion no cambia, clasificarla una
+    vez vale para siempre.
+
+    Sin musica.json no se rompe nada: rota sin emparejar, que es como estaba
+    antes. Y si ya se usaron todas, recicla: mejor repetir que salir mudo.
     """
     try:
         pistas = audio_en_tendencia(user_id, token)
@@ -148,11 +157,24 @@ def elegir_audio(user_id: str, token: str, usados: list[str]) -> dict | None:
         return None
     if not pistas:
         return None
+
     recientes = set(usados[-8:])
-    for p in pistas:
-        if p.get("audio_id") not in recientes:
-            return p
-    return pistas[0]
+    libres = [p for p in pistas if p.get("audio_id") not in recientes] or pistas
+
+    clasificacion = leer(RAIZ / "musica.json", {})
+    letra = LETRAS.get(mood, "")
+    if clasificacion and letra:
+        encajan = [p for p in libres
+                   if letra in (clasificacion.get(p.get("audio_id", ""), {})
+                                .get("cat", ""))]
+        if encajan:
+            return encajan[0]
+        print(f"    [aviso] ninguna cancion en tendencia encaja con '{mood}'; "
+              f"va la siguiente libre")
+    elif not clasificacion:
+        print("    [aviso] sin musica.json: no hay emparejado, solo rotacion")
+
+    return libres[0]
 
 
 def crear_contenedor_reel(user_id: str, token: str, url_video: str,
@@ -320,7 +342,8 @@ def main() -> int:
             es_reel = formato == "reel" or urls[0].lower().endswith(".mp4")
 
             if es_reel:
-                audio = elegir_audio(user_id, token, usados)
+                audio = elegir_audio(user_id, token, usados,
+                                     pieza.get("mood", ""))
                 if audio:
                     print(f"    audio: {audio.get('title')} — "
                           f"{audio.get('display_artist') or audio.get('ig_username')}")
