@@ -194,6 +194,17 @@
       "formato": "carrusel",
       "mood": "giro",
       "texto": "Lo que se hace con miedo se hace mal, así que quítate la pena de una vez"
+    },
+    {
+      "id": "reel-7",
+      "media_id": "18028494179853653",
+      "fecha_programada": "2026-09-22",
+      "publicado_en": "2026-09-22T16:21:22-06:00",
+      "formato": "reel",
+      "mood": "giro",
+      "texto": "Nadie es imprescindible en esta vida, pero tú ya te estás poniendo difícil de reemplazar",
+      "audio_id": "1898376820205032",
+      "audio_titulo": "Pink Elephants on Parade (From \"Dumbo\" / Soundtrack Version)"
     }
   ]
 }
