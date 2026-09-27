@@ -95,17 +95,25 @@ jobs:
           # igual, pero avisa de que los reels saldrian mudos.
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          # Para reclasificar las canciones nuevas. La tendencia de Instagram
+          # rota completa en unos ocho dias; sin esto el emparejado se queda
+          # viejo y la nube elige la primera libre sin decir nada.
+          # Si falta, publica igual pero sin emparejar.
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           FORZAR_PIEZA: ${{ github.event.inputs.forzar_pieza }}
           MODO: ${{ steps.modo.outputs.modo }}
         run: python publicar.py
 
+      # Se anotan LOS DOS archivos. musica.json va aqui porque la tarea
+      # reclasifica las canciones nuevas al publicar: si no se guardara, cada
+      # corrida volveria a pagar por clasificar lo mismo.
       - name: Anotar lo publicado
         if: always()
         run: |
-          if [ -n "$(git status --porcelain publicado.json)" ]; then
+          if [ -n "$(git status --porcelain publicado.json musica.json)" ]; then
             git config user.name  "reel-forge"
             git config user.email "actions@github.com"
-            git add publicado.json
+            git add publicado.json musica.json
             git pull --rebase --quiet || true
             git commit -m "Publicado $(date -u +%Y-%m-%d)"
             git push

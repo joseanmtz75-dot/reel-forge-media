@@ -134,6 +134,86 @@ def audio_en_tendencia(user_id: str, token: str, tipo: str = "music") -> list[di
 
 
 LETRAS = {"albur": "a", "giro": "g", "coqueto": "c", "romantico": "r"}
+MUSICA = RAIZ / "musica.json"
+
+INSTRUCCION_DJ = """Clasifica canciones para reels de una cuenta mexicana de frases.
+
+Categorias:
+a = albur (doble sentido, picardia) -> corridos tumbados, reggaeton, cumbia con actitud
+g = giro (empieza serio y remata en broma) -> algo epico o solemne, que contraste
+c = coqueto (ligue, juguetón) -> pop, reggaeton suave, algo animado
+r = romantico (sincero, sin broma) -> balada, romantica, piano, banda sentimental
+
+Para cada cancion responde las letras que le queden (1 a 3, sin espacios).
+Si no le queda ninguna, responde "-".
+
+Responde SOLO un JSON {"numero":"letras"}. Sin texto adicional."""
+
+
+def clasificar_nuevas(pistas: list[dict]) -> dict:
+    """
+    Clasifica las canciones en tendencia que aun no estuvieran en musica.json.
+
+    POR QUE ESTO VIVE AQUI Y NO SOLO EN LA MAQUINA DEL USUARIO
+    ----------------------------------------------------------
+    La clasificacion se hacia solo en local y viajaba como archivo. Funciono
+    cuatro dias: la lista de tendencias de Instagram ROTO COMPLETA en ocho, y
+    desde el 23 de septiembre el emparejado dejo de funcionar sin que nada lo
+    dijera — la nube seguia publicando, pero eligiendo la primera cancion libre
+    en vez de la que le pegaba a la frase.
+
+    Un cache que caduca y nadie refresca es lo mismo que no tener cache. Asi
+    que se refresca aqui, donde si corre todos los dias.
+
+    Cuesta una fraccion de centimo por rotacion (25 canciones = $0.0002) y solo
+    se paga cuando aparecen canciones nuevas. Si falta la llave o DeepSeek
+    falla, NO se rompe nada: se sigue rotando sin emparejar, que es como estaba.
+    """
+    clave = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+    cache = leer(MUSICA, {})
+    nuevas = [p for p in pistas
+              if p.get("audio_id") and p["audio_id"] not in cache]
+    if not nuevas:
+        return cache
+    if not clave:
+        print(f"    [aviso] {len(nuevas)} cancion(es) sin clasificar y no hay "
+              f"DEEPSEEK_API_KEY: se rotara sin emparejar")
+        return cache
+
+    listado = "\n".join(
+        f"{i+1}. {p.get('title','?')} - "
+        f"{p.get('display_artist') or p.get('ig_username') or ''}".strip(" -")
+        for i, p in enumerate(nuevas))
+    try:
+        r = requests.post(
+            "https://api.deepseek.com/chat/completions",
+            headers={"Authorization": f"Bearer {clave}",
+                     "Content-Type": "application/json"},
+            json={"model": "deepseek-flash",
+                  "messages": [{"role": "system", "content": INSTRUCCION_DJ},
+                               {"role": "user", "content": listado}],
+                  "temperature": 0.1, "max_tokens": 900,
+                  "response_format": {"type": "json_object"},
+                  # Sin esto gasta el tope entero razonando y devuelve vacio.
+                  "thinking": {"type": "disabled"}},
+            timeout=120)
+        d = r.json()
+        mapa = json.loads(d["choices"][0]["message"]["content"])
+    except Exception as e:
+        print(f"    [aviso] no pude clasificar ({e}); se rota sin emparejar")
+        return cache
+
+    for i, p in enumerate(nuevas):
+        letras = str(mapa.get(str(i + 1), "-")).lower()
+        cache[p["audio_id"]] = {
+            "cat": "".join(sorted(set(c for c in letras if c in "agcr"))),
+            "titulo": p.get("title", "?"),
+        }
+    escribir(MUSICA, cache)
+    uso = d.get("usage", {})
+    print(f"    {len(nuevas)} cancion(es) nuevas clasificadas "
+          f"({uso.get('prompt_tokens','?')} + {uso.get('completion_tokens','?')} tokens)")
+    return cache
 
 
 def elegir_audio(user_id: str, token: str, usados: list[str],
@@ -161,7 +241,9 @@ def elegir_audio(user_id: str, token: str, usados: list[str],
     recientes = set(usados[-8:])
     libres = [p for p in pistas if p.get("audio_id") not in recientes] or pistas
 
-    clasificacion = leer(RAIZ / "musica.json", {})
+    # Se refresca ANTES de elegir: si la tendencia trajo canciones nuevas, hoy
+    # mismo ya se emparejan bien en vez de esperar a que alguien lo note.
+    clasificacion = clasificar_nuevas(pistas)
     letra = LETRAS.get(mood, "")
     if clasificacion and letra:
         encajan = [p for p in libres
