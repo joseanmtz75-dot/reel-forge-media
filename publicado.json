@@ -249,6 +249,17 @@
       "texto": "No busques a alguien que te complete, busca a alguien que te aguante el ritmo",
       "audio_id": "182268522543265",
       "audio_titulo": "De Noche En La Ciudad"
+    },
+    {
+      "id": "reel-14",
+      "media_id": "17908781718508049",
+      "fecha_programada": "2026-09-28",
+      "publicado_en": "2026-09-28T00:59:53-06:00",
+      "formato": "reel",
+      "mood": "albur",
+      "texto": "Dicen que la paciencia se acaba, la mía primero se pone dura",
+      "audio_id": "1601477364687423",
+      "audio_titulo": "OLIVIA LA FLAKA"
     }
   ]
 }
