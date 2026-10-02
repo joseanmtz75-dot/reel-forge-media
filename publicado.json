@@ -293,6 +293,17 @@
       "texto": "Nunca dejo para mañana lo que puedo hacer hoy, y menos si me lo están pidiendo",
       "audio_id": "28828787903411478",
       "audio_titulo": "China (feat. 1717177x)"
+    },
+    {
+      "id": "reel-68",
+      "media_id": "18107669453522557",
+      "fecha_programada": "2026-10-01",
+      "publicado_en": "2026-10-01T23:30:42-06:00",
+      "formato": "reel",
+      "mood": "romantico",
+      "texto": "No fue amor a primera vista, fue amor a primera plática, y eso dura más",
+      "audio_id": "678506941636618",
+      "audio_titulo": "The First Time"
     }
   ]
 }
