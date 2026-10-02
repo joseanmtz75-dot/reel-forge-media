@@ -136,6 +136,10 @@ def audio_en_tendencia(user_id: str, token: str, tipo: str = "music") -> list[di
 LETRAS = {"albur": "a", "giro": "g", "coqueto": "c", "romantico": "r"}
 MUSICA = RAIZ / "musica.json"
 
+# Una cancion "va subiendo" mientras lleve 2 dias o menos apareciendo en
+# la lista de tendencia. Pasado eso ya se aplano.
+DIAS_NUEVA = 2
+
 INSTRUCCION_DJ = """Clasifica canciones para reels de una cuenta mexicana de frases.
 
 Categorias:
@@ -203,11 +207,17 @@ def clasificar_nuevas(pistas: list[dict]) -> dict:
         print(f"    [aviso] no pude clasificar ({e}); se rota sin emparejar")
         return cache
 
+    hoy = hoy_en_mexico()
     for i, p in enumerate(nuevas):
         letras = str(mapa.get(str(i + 1), "-")).lower()
         cache[p["audio_id"]] = {
             "cat": "".join(sorted(set(c for c in letras if c in "agcr"))),
             "titulo": p.get("title", "?"),
+            # El dia que la cancion aparecio por PRIMERA VEZ en tendencia. La
+            # API no dice si un audio va subiendo o ya se aplano; esto es lo mas
+            # cerca que se puede estar de medirlo, y solo funciona porque esta
+            # tarea corre todos los dias.
+            "visto_en": hoy,
         }
     escribir(MUSICA, cache)
     uso = d.get("usage", {})
@@ -243,19 +253,46 @@ def elegir_audio(user_id: str, token: str, usados: list[str],
 
     # Se refresca ANTES de elegir: si la tendencia trajo canciones nuevas, hoy
     # mismo ya se emparejan bien en vez de esperar a que alguien lo note.
-    clasificacion = clasificar_nuevas(pistas)
-    letra = LETRAS.get(mood, "")
-    if clasificacion and letra:
-        encajan = [p for p in libres
-                   if letra in (clasificacion.get(p.get("audio_id", ""), {})
-                                .get("cat", ""))]
-        if encajan:
-            return encajan[0]
-        print(f"    [aviso] ninguna cancion en tendencia encaja con '{mood}'; "
-              f"va la siguiente libre")
-    elif not clasificacion:
+    cache = clasificar_nuevas(pistas)
+    if not cache:
         print("    [aviso] sin musica.json: no hay emparejado, solo rotacion")
+        return libres[0]
 
+    letra = LETRAS.get(mood, "")
+    frontera = (datetime.now(ZONA_MEXICO) - timedelta(days=DIAS_NUEVA)).date().isoformat()
+
+    def encaja(p):
+        return letra and letra in cache.get(p.get("audio_id", ""), {}).get("cat", "")
+
+    def nueva(p):
+        return cache.get(p.get("audio_id", ""), {}).get("visto_en", "") >= frontera
+
+    # ORDEN DE PREFERENCIA, y el segundo puesto es una APUESTA:
+    #
+    #   1. encaja con la categoria Y acaba de aparecer
+    #   2. acaba de aparecer, aunque no encaje          <- la apuesta
+    #   3. encaja con la categoria
+    #   4. cualquiera libre
+    #
+    # El unico reel que rompio el techo (1622 vistas, 37 compartidos, contra un
+    # maximo previo de 257 y 2 compartidos en TODO el proyecto) llevaba una
+    # cancion MAL emparejada que a los dos dias ya habia rotado fuera de la
+    # tendencia: un audio subiendo rapido.
+    #
+    # Y cuadra con el diagnostico: a esta cuenta no le falta retencion (62-83%),
+    # le falta REPARTO. Un audio que sube es una apuesta de distribucion; uno que
+    # encaja es una de ajuste. Falta la primera.
+    #
+    # Es n=1. Si sale falso, invertir el orden son dos lineas.
+    for nombre, criterio in (("encaja y es nueva", lambda p: encaja(p) and nueva(p)),
+                             ("es nueva", nueva),
+                             ("encaja", encaja)):
+        candidatas = [p for p in libres if criterio(p)]
+        if candidatas:
+            print(f"    criterio: {nombre}")
+            return candidatas[0]
+
+    print(f"    [aviso] ninguna encaja ni es nueva; va la siguiente libre")
     return libres[0]
 
 
