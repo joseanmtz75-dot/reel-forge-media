@@ -337,6 +337,17 @@
       "texto": "La constancia le gana al talento cuando el talento no es constante, y yo soy bien constante",
       "audio_id": "199637114643626",
       "audio_titulo": "Somebody's Watching Me (Single Version)"
+    },
+    {
+      "id": "reel-71",
+      "media_id": "17903882958591159",
+      "fecha_programada": "2026-10-04",
+      "publicado_en": "2026-10-05T04:01:13-06:00",
+      "formato": "reel",
+      "mood": "coqueto",
+      "texto": "Te vi dos segundos y me arruinaste toda la semana",
+      "audio_id": "736834266124648",
+      "audio_titulo": "Beso"
     }
   ]
 }
