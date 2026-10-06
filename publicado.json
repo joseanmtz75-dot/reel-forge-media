@@ -348,6 +348,17 @@
       "texto": "Te vi dos segundos y me arruinaste toda la semana",
       "audio_id": "736834266124648",
       "audio_titulo": "Beso"
+    },
+    {
+      "id": "reel-72",
+      "media_id": "18033314351856440",
+      "fecha_programada": "2026-10-06",
+      "publicado_en": "2026-10-06T17:10:02-06:00",
+      "formato": "reel",
+      "mood": "albur",
+      "texto": "Me dicen que soy muy intenso, y eso que apenas vas conociendo la punta",
+      "audio_id": "2618313515277554",
+      "audio_titulo": "LA CALABAZA"
     }
   ]
 }
