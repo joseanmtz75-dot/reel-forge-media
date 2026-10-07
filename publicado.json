@@ -359,6 +359,17 @@
       "texto": "Me dicen que soy muy intenso, y eso que apenas vas conociendo la punta",
       "audio_id": "2618313515277554",
       "audio_titulo": "LA CALABAZA"
+    },
+    {
+      "id": "reel-76",
+      "media_id": "18080556566341074",
+      "fecha_programada": "2026-10-07",
+      "publicado_en": "2026-10-07T17:16:11-06:00",
+      "formato": "reel",
+      "mood": "coqueto",
+      "texto": "Nos discutimos por el control y al rato ya andamos pegados",
+      "audio_id": "923024947007975",
+      "audio_titulo": "Noche Perfecta"
     }
   ]
 }
