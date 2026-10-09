@@ -370,6 +370,17 @@
       "texto": "Nos discutimos por el control y al rato ya andamos pegados",
       "audio_id": "923024947007975",
       "audio_titulo": "Noche Perfecta"
+    },
+    {
+      "id": "reel-77",
+      "media_id": "18113627878981316",
+      "fecha_programada": "2026-10-09",
+      "publicado_en": "2026-10-09T00:03:40-06:00",
+      "formato": "reel",
+      "mood": "giro",
+      "texto": "Todo pasa por una razón, menos tú, que pasas por pura suerte mía",
+      "audio_id": "1652488768210767",
+      "audio_titulo": "Outro"
     }
   ]
 }
