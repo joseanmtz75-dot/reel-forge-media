@@ -392,6 +392,17 @@
       "texto": "Dijiste que era rapidito y ahí seguimos dos horas",
       "audio_id": "1171672173294186",
       "audio_titulo": "Grandes Ligas (feat. Snoop Dogg, B-Real)"
+    },
+    {
+      "id": "reel-78",
+      "media_id": "17949288612322323",
+      "fecha_programada": "2026-10-10",
+      "publicado_en": "2026-10-10T14:14:08-06:00",
+      "formato": "reel",
+      "mood": "romantico",
+      "texto": "Si me preguntan qué es lo nuestro, digo que es un martes contigo",
+      "audio_id": "759872221928516",
+      "audio_titulo": "Smalltown Boy (1991 Remix)"
     }
   ]
 }
